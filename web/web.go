@@ -17,7 +17,7 @@ import (
 	_ "github.com/dghubble/sling"
 	"github.com/dustin/go-humanize"
 	_ "github.com/foolin/goview"
-	"github.com/getsentry/sentry-go"
+	sentry "github.com/getsentry/sentry-go"
 	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/gin-gonic/gin"
 	_ "github.com/gobuffalo/validate"
@@ -25,9 +25,9 @@ import (
 	_ "github.com/gotailwindcss/tailwind"
 	_ "github.com/joncalhoun/form"
 	log "github.com/sirupsen/logrus"
+	"github.com/threecommaio/opc/version"
 	ginlogrus "github.com/toorop/gin-logrus"
 	_ "google.golang.org/grpc"
-	"github.com/threecommaio/opc/version"
 )
 
 // Srv is the web server
@@ -159,25 +159,12 @@ func WithQuit(quit chan os.Signal) Option {
 	}
 }
 
-// Run starts the web server
-func (s *Srv) Run() error {
+// Start starts the web server
+func (s *Srv) Start() error {
 	// Flush buffered events before the program terminates
 	// Set the timeout to the maximum duration the program can afford to wait
 	defer sentry.Flush(5 * time.Second)
 
-	if err := s.Start(); err != nil {
-		return err
-	}
-	<-s.quit
-	if err := s.Stop(); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// Start starts the web server
-func (s *Srv) Start() error {
 	// Initializing the server in a goroutine so that
 	// it won't block the graceful shutdown handling below
 	go func() {
@@ -185,6 +172,11 @@ func (s *Srv) Start() error {
 			log.Printf("listen: %s\n", err)
 		}
 	}()
+
+	<-s.quit
+	if err := s.Stop(); err != nil {
+		return err
+	}
 
 	return nil
 }

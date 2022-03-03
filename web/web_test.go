@@ -2,12 +2,14 @@ package web
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
 )
 
 func TestWeb(t *testing.T) {
@@ -17,7 +19,7 @@ func TestWeb(t *testing.T) {
 		WriteTimeout:  "10s",
 	}
 
-	server, router, err := Setup(srvCfg)
+	s, router, err := Setup(srvCfg)
 	if err != nil {
 		t.Fatalf("Server setup failed: %s", err)
 	}
@@ -26,11 +28,11 @@ func TestWeb(t *testing.T) {
 		c.String(http.StatusOK, "pong")
 	})
 
-	// TODO Determine how to use Run() instead of Start()
-	err = server.Start()
-	if err != nil {
-		t.Fatalf("Server failed to start: %s", err)
-	}
+	go func() {
+		if err := s.server.ListenAndServe(); err != nil && errors.Is(err, http.ErrServerClosed) {
+			log.Fatalf("Server failed to start: %s", err)
+		}
+	}()
 
 	req, err := http.NewRequest("GET", "http://localhost:8080/ping", nil)
 	if err != nil {
@@ -47,7 +49,7 @@ func TestWeb(t *testing.T) {
 		t.Fatalf("Failed to read http response: %s", err)
 	}
 
-	fmt.Printf("Expected pong, got %s", string(body))
+	fmt.Printf("Expected pong, got %s\n", string(body))
 
 	if string(body) != "pong" {
 		t.Fatalf("Unexpected server response: %s", err)
