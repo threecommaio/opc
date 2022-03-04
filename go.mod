@@ -36,6 +36,7 @@ require (
 	github.com/prometheus/client_golang v1.12.1
 	github.com/sirupsen/logrus v1.8.1
 	github.com/tidwall/jsonc v0.3.2
+	github.com/tidwall/pretty v1.2.0
 	github.com/toorop/gin-logrus v0.0.0-20210225092905-2c785434f26f
 	go.etcd.io/bbolt v1.3.6
 	go.etcd.io/etcd/client/v3 v3.5.2
