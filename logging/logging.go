@@ -7,15 +7,54 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 	"github.com/sirupsen/logrus/hooks/writer"
+	"github.com/threecommaio/opc/core"
 )
 
 var (
-	errParseLogLevel = errors.New("failed to parse log level")
+	ErrParseLogLevel = errors.New("failed to parse log level")
 )
 
-func init() {
+// SetLevel sets the log level
+func SetLevel(loglevel string) error {
+	l, err := log.ParseLevel(loglevel)
+	if err != nil {
+		return fmt.Errorf("%w: %s - %s", ErrParseLogLevel, loglevel, err)
+	}
+
+	log.SetLevel(l)
+
+	return nil
+}
+
+type ExtraFieldHook struct {
+	service string
+	env     string
+	pid     int
+}
+
+func NewExtraFieldHook(service string, env string) *ExtraFieldHook {
+	return &ExtraFieldHook{
+		service: service,
+		env:     env,
+	}
+}
+
+func (h *ExtraFieldHook) Levels() []logrus.Level {
+	return logrus.AllLevels
+}
+
+func (h *ExtraFieldHook) Fire(entry *logrus.Entry) error {
+	entry.Data["service"] = h.service
+	entry.Data["env"] = h.env
+	return nil
+}
+
+// Init set service name and environment
+func Init(service, env string) error {
 	log.SetOutput(ioutil.Discard) // Send all logs to nowhere by default
 
 	log.AddHook(&writer.Hook{ // Send logs with level higher than or equal to warning to stderr
@@ -35,21 +74,28 @@ func init() {
 			log.TraceLevel,
 		},
 	})
-	log.SetFormatter(&log.TextFormatter{
-		DisableColors: false,
-		FullTimestamp: true,
-		ForceColors:   true,
-	})
-}
 
-// SetLevel sets the log level
-func SetLevel(loglevel string) error {
-	l, err := log.ParseLevel(loglevel)
-	if err != nil {
-		return fmt.Errorf("%w: %s - %s", errParseLogLevel, loglevel, err)
+	switch env {
+	case core.Production:
+		gin.SetMode(gin.ReleaseMode)
+		log.SetFormatter(&log.JSONFormatter{
+			FieldMap: log.FieldMap{
+				log.FieldKeyMsg:   "message",
+				log.FieldKeyLevel: "severity",
+			},
+		})
+	default:
+		log.SetFormatter(&log.TextFormatter{
+			DisableColors: false,
+			FullTimestamp: true,
+			ForceColors:   true,
+		})
 	}
 
-	log.SetLevel(l)
+	log.AddHook(NewExtraFieldHook(service, env))
+
+	log.Print("logs for [debug,info] -> [stdout], [else] -> [stderr]")
+	log.Printf("production mode: %t", core.Environment() == core.Production)
 
 	return nil
 }
