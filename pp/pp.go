@@ -14,6 +14,6 @@ func JSON(message interface{}) string {
 }
 
 // PrettyJSON takes a JSON string and returns a pretty-printed version
-func PrettyJSON(json []byte) []byte {
-	return pretty.Pretty(json)
+func PrettyJSON(json []byte) string {
+	return string(pretty.Pretty(json))
 }
