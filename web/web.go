@@ -192,5 +192,3 @@ func IsError(c *gin.Context, err error) bool {
 
 	return false // no error, can continue
 }
-
-//
