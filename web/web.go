@@ -101,17 +101,10 @@ func Setup(cfg SrvConfig) (Srv, *gin.Engine, error) {
 
 	// Setup the gin router
 	router := gin.New()
-	formatter := &log.TextFormatter{
-		FullTimestamp:   true,
-		TimestampFormat: time.RFC3339,
-		PadLevelText:    true,
-	}
-	l := log.New()
-	l.SetFormatter(formatter)
 	router.Use(sentrygin.New(sentrygin.Options{
 		Repanic: true,
 	}))
-	router.Use(ginlogrus.Logger(l), gin.Recovery())
+	router.Use(ginlogrus.Logger(log.StandardLogger()), gin.Recovery())
 	// attach healthcheck
 	router.GET("/healthz", Healthz())
 
