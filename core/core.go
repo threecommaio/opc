@@ -37,7 +37,7 @@ func Environment() string {
 	case gin.TestMode:
 		return Staging
 	case gin.ReleaseMode:
-		return Development
+		return Production
 	}
 
 	return "unknown"

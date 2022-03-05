@@ -25,6 +25,7 @@ import (
 	_ "github.com/gotailwindcss/tailwind"
 	_ "github.com/joncalhoun/form"
 	log "github.com/sirupsen/logrus"
+	"github.com/threecommaio/opc/core"
 	"github.com/threecommaio/opc/version"
 	ginlogrus "github.com/toorop/gin-logrus"
 	_ "google.golang.org/grpc"
@@ -46,19 +47,6 @@ type SrvConfig struct {
 	ListenAddress string
 	ReadTimeout   string
 	WriteTimeout  string
-}
-
-func environment() string {
-	switch gin.Mode() {
-	case gin.DebugMode:
-		return "development"
-	case gin.TestMode:
-		return "staging"
-	case gin.ReleaseMode:
-		return "production"
-	}
-
-	return "unknown"
 }
 
 func init() {
@@ -83,7 +71,7 @@ func init() {
 	if err := sentry.Init(sentry.ClientOptions{
 		Dsn:              dsn,
 		Release:          version.Release(),
-		Environment:      environment(),
+		Environment:      core.Environment(),
 		Debug:            debug == "true",
 		TracesSampleRate: sampleRate,
 	}); err != nil {
