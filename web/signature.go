@@ -67,7 +67,8 @@ func SlackValidator(c *gin.Context, data []byte, secret string) error {
 
 // GithubValidator validates github webhook signature
 func GithubValidator(c *gin.Context, data []byte, secret string) error {
-	err := github.ValidateSignature(GithubSignature, data, []byte(secret))
+	signature := c.Request.Header.Get(GithubSignature)
+	err := github.ValidateSignature(signature, data, []byte(secret))
 	if err != nil {
 		return fmt.Errorf("%w: %s", ErrVerifyingGithub, err)
 	}
