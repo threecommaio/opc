@@ -67,15 +67,18 @@ func init() {
 		log.Warn("SENTRY_DSN is empty, consult sentry.io documentation")
 		return
 	}
-	// To initialize Sentry's handler, you need to initialize Sentry itself beforehand
-	if err := sentry.Init(sentry.ClientOptions{
-		Dsn:              dsn,
-		Release:          version.Release(),
-		Environment:      core.Environment(),
-		Debug:            debug == "true",
-		TracesSampleRate: sampleRate,
-	}); err != nil {
-		log.Fatalf("sentry initialization failed: %v\n", err)
+
+	if core.Environment() != core.Development {
+		// To initialize Sentry's handler, you need to initialize Sentry itself beforehand
+		if err := sentry.Init(sentry.ClientOptions{
+			Dsn:              dsn,
+			Release:          version.Release(),
+			Environment:      core.Environment(),
+			Debug:            debug == "true",
+			TracesSampleRate: sampleRate,
+		}); err != nil {
+			log.Fatalf("sentry initialization failed: %v\n", err)
+		}
 	}
 }
 
@@ -193,4 +196,15 @@ func IsError(c *gin.Context, err error) bool {
 	return false // no error, can continue
 }
 
-//
+// IsError401 checks if err and aborts with json 401 error
+func IsError401(c *gin.Context, err error) bool {
+	if err != nil {
+		log.Warn(err)
+		c.AbortWithStatusJSON(http.StatusUnauthorized,
+			gin.H{"status": false, "message": err.Error()})
+
+		return true // signal that there was an error and the caller should return
+	}
+
+	return false // no error, can continue
+}

@@ -89,6 +89,7 @@ func Init(service, env string) error {
 			DisableColors: false,
 			FullTimestamp: true,
 			ForceColors:   true,
+			PadLevelText:  true,
 		})
 	}
 
