@@ -12,30 +12,26 @@ import (
 	"github.com/threecommaio/opc/core"
 )
 
-const (
-	SlackSignature  = "X-Slack-Signature"
-	GithubSignature = "X-Hub-Signature-256"
-	LinearSignature = "Linear-Delivery"
-)
-
 // signatures we should verify if they exist
 var validSignatures []Signature = []Signature{
 	{
-		Header: SlackSignature,
-		Env:    "SLACK_WEBHOOK_SECRET",
+		Header:  SlackSignature,
+		Env:     "SLACK_WEBHOOK_SECRET",
+		IsValid: SlackValidator,
 	},
 	{
-		Header: GithubSignature,
-		Env:    "GH_WEBHOOK_SECRET",
+		Header:  GithubSignature,
+		Env:     "GH_WEBHOOK_SECRET",
+		IsValid: GithubValidator,
 	},
 	{
-		Header: LinearSignature,
-		Env:    "LINEAR_WEBHOOK_SECRET", // not implemented yet
+		Header:  LinearSignature,
+		Env:     "LINEAR_WEBHOOK_SECRET", // not implemented yet
+		IsValid: LinearValidator,
 	},
 }
 
 func WebhookSecretValidation() gin.HandlerFunc {
-	sv := NewSignatureValidator()
 	return func(c *gin.Context) {
 		// skip validation if not in production
 		if !IsSecretValidateEnabled() {
@@ -48,29 +44,15 @@ func WebhookSecretValidation() gin.HandlerFunc {
 			return
 		}
 
-	signature:
 		for _, signature := range validSignatures {
 			_, ok := c.Request.Header[signature.Header]
 			if ok {
 				secret := os.Getenv(signature.Env)
-				switch signature.Header {
-				case SlackSignature:
-					err := sv.IsSlackValid(c, data, secret)
-					if IsError401(c, err) {
-						return
-					}
-					break signature
-				case GithubSignature:
-					err := sv.IsGithubValid(c, data, secret)
-					if IsError401(c, err) {
-						return
-					}
-					break signature
-				case LinearSignature:
-					// TODO: add ip allowlist here
-					// no verification required due to linear lacking signature verification
-					break signature
+				err := signature.IsValid(c, data, secret)
+				if IsError401(c, err) {
+					return
 				}
+				break
 			}
 		}
 		c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(data))

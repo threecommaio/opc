@@ -9,22 +9,25 @@ import (
 	"github.com/slack-go/slack"
 )
 
+const (
+	SlackSignature  = "X-Slack-Signature"
+	GithubSignature = "X-Hub-Signature-256"
+	LinearSignature = "Linear-Delivery"
+)
+
 var (
 	ErrVerifyingSlack  = errors.New("error verifying slack secret")
 	ErrVerifyingGithub = errors.New("error verifying github secret")
 )
 
 type Signature struct {
-	Header string
-	Env    string
+	Header  string
+	Env     string
+	IsValid func(c *gin.Context, data []byte, secret string) error
 }
 
-// SignatureValidator is a wrapper for signature validation
-type SignatureValidator struct {
-}
-
-// IsSlackValid validates slack webhook signature
-func (s *SignatureValidator) IsSlackValid(c *gin.Context, data []byte, secret string) error {
+// SlackValidator validates slack webhook signature
+func SlackValidator(c *gin.Context, data []byte, secret string) error {
 	sv, err := slack.NewSecretsVerifier(c.Request.Header, secret)
 	if err != nil {
 		return fmt.Errorf("%w: %s", ErrVerifyingSlack, err)
@@ -40,8 +43,8 @@ func (s *SignatureValidator) IsSlackValid(c *gin.Context, data []byte, secret st
 	return nil
 }
 
-// IsGithubValid validates github webhook signature
-func (s *SignatureValidator) IsGithubValid(c *gin.Context, data []byte, secret string) error {
+// GithubValidator validates github webhook signature
+func GithubValidator(c *gin.Context, data []byte, secret string) error {
 	err := github.ValidateSignature(GithubSignature, data, []byte(secret))
 	if err != nil {
 		return fmt.Errorf("%w: %s", ErrVerifyingGithub, err)
@@ -49,6 +52,9 @@ func (s *SignatureValidator) IsGithubValid(c *gin.Context, data []byte, secret s
 	return nil
 }
 
-func NewSignatureValidator() *SignatureValidator {
-	return &SignatureValidator{}
+// LinearValidator validates linear webhook signature
+func LinearValidator(c *gin.Context, data []byte, secret string) error {
+	// TODO: add ip allowlist here
+	// no verification required due to linear lacking signature verification
+	return nil
 }
