@@ -97,7 +97,7 @@ func Setup(cfg SrvConfig) (Srv, *gin.Engine, error) {
 	}))
 	router.Use(ginlogrus.Logger(log.StandardLogger()), gin.Recovery())
 	// attach healthcheck
-	router.GET("/healthz", Healthz())
+	router.GET("/health", Healthz())
 
 	readTimeout, err := time.ParseDuration(cfg.ReadTimeout)
 	if err != nil {
