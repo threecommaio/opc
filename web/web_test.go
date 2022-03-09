@@ -3,7 +3,6 @@ package web
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"testing"
@@ -19,7 +18,7 @@ func TestWeb(t *testing.T) {
 		WriteTimeout:  "10s",
 	}
 
-	s, router, err := Setup(srvCfg)
+	s, router, err := New(srvCfg)
 	if err != nil {
 		t.Fatalf("Server setup failed: %s", err)
 	}
@@ -48,8 +47,6 @@ func TestWeb(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to read http response: %s", err)
 	}
-
-	fmt.Printf("Expected pong, got %s\n", string(body))
 
 	if string(body) != "pong" {
 		t.Fatalf("Unexpected server response: %s", err)

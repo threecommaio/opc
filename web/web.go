@@ -31,12 +31,17 @@ import (
 	_ "google.golang.org/grpc"
 )
 
+var (
+	ErrSentryDisabled = errors.New("sentry disabled in development environment")
+	ErrSentryEmpty    = errors.New("sentry dsn is empty")
+)
+
 // Srv is the web server
 type Srv struct {
-	cfg    SrvConfig
-	quit   chan os.Signal
-	ctx    context.Context
-	server *http.Server
+	cfg       SrvConfig
+	quit      chan os.Signal
+	sentryDSN string
+	server    *http.Server
 }
 
 // Option is used for configuring features of the webserver
@@ -49,8 +54,7 @@ type SrvConfig struct {
 	WriteTimeout  string
 }
 
-func init() {
-	dsn := os.Getenv("SENTRY_DSN")
+func configureSentry(dsn string) error {
 	debug := os.Getenv("SENTRY_DEBUG")
 	sr := os.Getenv("SENTRY_SAMPLE_RATE")
 	if sr == "" {
@@ -63,32 +67,33 @@ func init() {
 	if sampleRate < 0 || sampleRate > 1 {
 		log.Fatal("sentry sample rate must be between 0 and 1.0")
 	}
-	if dsn == "" {
-		log.Warn("SENTRY_DSN is empty, consult sentry.io documentation")
-		return
+
+	if core.Environment() == core.Development {
+		return ErrSentryDisabled
 	}
 
-	if core.Environment() != core.Development {
-		// To initialize Sentry's handler, you need to initialize Sentry itself beforehand
-		if err := sentry.Init(sentry.ClientOptions{
-			Dsn:              dsn,
-			Release:          version.Release(),
-			Environment:      core.Environment(),
-			Debug:            debug == "true",
-			TracesSampleRate: sampleRate,
-		}); err != nil {
-			log.Fatalf("sentry initialization failed: %v\n", err)
-		}
+	if dsn == "" {
+		return ErrSentryEmpty
 	}
+
+	// To initialize Sentry's handler, you need to initialize Sentry itself beforehand
+	if err := sentry.Init(sentry.ClientOptions{
+		Dsn:              dsn,
+		Release:          version.Release(),
+		Environment:      core.Environment(),
+		Debug:            debug == "true",
+		TracesSampleRate: sampleRate,
+	}); err != nil {
+		return err
+	}
+
+	return nil
 }
 
-// Setup  sets up the webserver
-func Setup(cfg SrvConfig) (Srv, *gin.Engine, error) {
+// New creates the webserver
+func New(cfg SrvConfig, opts ...Option) (Srv, *gin.Engine, error) {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
 	// Setup the gin router
 	router := gin.New()
@@ -116,30 +121,31 @@ func Setup(cfg SrvConfig) (Srv, *gin.Engine, error) {
 		MaxHeaderBytes: 24 * humanize.KiByte,
 	}
 
-	s := New(ctx, cfg, server, WithQuit(quit))
-
-	return *s, router, nil
-}
-
-// New creates a new web server
-func New(ctx context.Context, cfg SrvConfig, server *http.Server, opts ...Option) *Srv {
 	srv := &Srv{
-		ctx:    ctx,
 		cfg:    cfg,
 		server: server,
 	}
+
+	opts = append(opts, WithQuit(quit))
 	// Loop through each option
 	for _, opt := range opts {
 		opt(srv)
 	}
 
-	return srv
+	return *srv, router, nil
 }
 
 // WithQuit sets the quit channel to receive a signal to stop the bot
 func WithQuit(quit chan os.Signal) Option {
 	return func(s *Srv) {
 		s.quit = quit
+	}
+}
+
+// WithSentryDSN sets the sentry dsn
+func WithSentryDSN(dsn string) Option {
+	return func(s *Srv) {
+		s.sentryDSN = dsn
 	}
 }
 
@@ -150,6 +156,22 @@ func (s *Srv) Start() error {
 	defer sentry.Flush(5 * time.Second)
 
 	log.Infof("build release: %s", version.Release())
+
+	// configure sentry
+	err := configureSentry(s.sentryDSN)
+	if err != nil {
+		switch true {
+		case errors.Is(err, ErrSentryDisabled):
+			log.Warn("sentry disabled in development environment")
+		case errors.Is(err, ErrSentryEmpty):
+			log.Warn("sentry dsn is empty for this project")
+		default:
+			return err
+		}
+	} else {
+		log.Info("sentry initialized")
+	}
+
 	// Initializing the server in a goroutine so that
 	// it won't block the graceful shutdown handling below
 	go func() {
