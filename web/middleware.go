@@ -12,39 +12,62 @@ import (
 	"github.com/threecommaio/opc/core"
 )
 
-// signatures we should verify if they exist
-var validSignatures []Signature = []Signature{
-	{
-		Header:  SlackSignature,
-		Env:     "SLACK_WEBHOOK_SECRET",
-		IsValid: SlackValidator,
-	},
-	{
-		Header:  GithubSignature,
-		Env:     "GH_WEBHOOK_SECRET",
-		IsValid: GithubValidator,
-	},
-	{
-		Header:  LinearSignature,
-		Env:     "LINEAR_WEBHOOK_SECRET", // not implemented yet
-		IsValid: LinearValidator,
-	},
+var SlackSignature = Signature{Header: HeaderSlack, Env: "SLACK_WEBHOOK_SECRET", IsValid: SlackValidator}
+var SlackChallenge = Challenge{Header: HeaderSlack, Env: "SLACK_WEBHOOK_SECRET", IsValid: SlackChallengeValidator}
+var GithubSignature = Signature{Header: HeaderSlack, Env: "GH_WEBHOOK_SECRET", IsValid: GithubValidator}
+var LinearSignature = Signature{Header: HeaderSlack, Env: "LINEAR_WEBHOOK_SECRET", IsValid: LinearValidator}
+
+// allSignatures we should verify if they exist
+var allSignatures []Signature = []Signature{SlackSignature, GithubSignature, LinearSignature}
+var allChallenges []Challenge = []Challenge{SlackChallenge}
+
+// WebhookChallenge is a middleware for validating webhook challenge
+func WebhookChallenge(opts ...Challenge) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		data, err := c.GetRawData()
+		if IsError(c, err) {
+			return
+		}
+		if opts == nil {
+			opts = append(opts, allChallenges...)
+		}
+
+		for _, challenge := range opts {
+			_, ok := c.Request.Header[challenge.Header]
+			if ok {
+				secret := os.Getenv(challenge.Env)
+				err := challenge.IsValid(c, data, secret)
+				if IsError401(c, err) {
+					return
+				}
+				break
+			}
+		}
+		c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(data))
+		c.Next()
+	}
 }
 
-func WebhookSecretValidation() gin.HandlerFunc {
+// WebhookSecretValidation is a middleware for validating webhook signature
+func WebhookSecretValidation(opts ...Signature) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		data, err := c.GetRawData()
+		if IsError(c, err) {
+			return
+		}
+
 		// skip validation if not in production
 		if !IsSecretValidateEnabled() {
 			log.Warning("skipping secret validation not in production")
 			c.Next()
 			return
 		}
-		data, err := c.GetRawData()
-		if IsError(c, err) {
-			return
+
+		if opts == nil {
+			opts = append(opts, allSignatures...)
 		}
 
-		for _, signature := range validSignatures {
+		for _, signature := range opts {
 			_, ok := c.Request.Header[signature.Header]
 			if ok {
 				secret := os.Getenv(signature.Env)

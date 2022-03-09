@@ -12,9 +12,9 @@ import (
 )
 
 const (
-	SlackSignature  = "X-Slack-Signature"
-	GithubSignature = "X-Hub-Signature-256"
-	LinearSignature = "Linear-Delivery"
+	HeaderSlack  = "X-Slack-Signature"
+	HeaderGithub = "X-Hub-Signature-256"
+	HeaderLinear = "Linear-Delivery"
 )
 
 var (
@@ -28,8 +28,14 @@ type Signature struct {
 	IsValid func(c *gin.Context, data []byte, secret string) error
 }
 
-// SlackValidator validates slack webhook signature
-func SlackValidator(c *gin.Context, data []byte, secret string) error {
+type Challenge struct {
+	Header  string
+	Env     string
+	IsValid func(c *gin.Context, data []byte, secret string) error
+}
+
+// SlackChallengeValidator validates slack challenge
+func SlackChallengeValidator(c *gin.Context, data []byte, secret string) error {
 	// handle parsing slack events including challenge requests
 	event, err := slackevents.ParseEvent(data, slackevents.OptionNoVerifyToken())
 	if err != nil {
@@ -47,9 +53,13 @@ func SlackValidator(c *gin.Context, data []byte, secret string) error {
 		if err != nil {
 			return fmt.Errorf("error writing challenge response: %s", err)
 		}
-		return nil
 	}
 
+	return nil
+}
+
+// SlackValidator validates slack webhook signature
+func SlackValidator(c *gin.Context, data []byte, secret string) error {
 	sv, err := slack.NewSecretsVerifier(c.Request.Header, secret)
 	if err != nil {
 		return fmt.Errorf("%w: %s", ErrVerifyingSlack, err)
@@ -67,7 +77,7 @@ func SlackValidator(c *gin.Context, data []byte, secret string) error {
 
 // GithubValidator validates github webhook signature
 func GithubValidator(c *gin.Context, data []byte, secret string) error {
-	signature := c.Request.Header.Get(GithubSignature)
+	signature := c.Request.Header.Get(HeaderGithub)
 	err := github.ValidateSignature(signature, data, []byte(secret))
 	if err != nil {
 		return fmt.Errorf("%w: %s", ErrVerifyingGithub, err)
