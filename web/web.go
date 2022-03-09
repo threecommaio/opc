@@ -149,6 +149,7 @@ func (s *Srv) Start() error {
 	// Set the timeout to the maximum duration the program can afford to wait
 	defer sentry.Flush(5 * time.Second)
 
+	log.Infof("build release: %s", version.Release())
 	// Initializing the server in a goroutine so that
 	// it won't block the graceful shutdown handling below
 	go func() {
