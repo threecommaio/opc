@@ -95,8 +95,5 @@ func Init(service, env string) error {
 
 	log.AddHook(NewExtraFieldHook(service, env))
 
-	log.Print("logs for [debug,info] -> [stdout], [else] -> [stderr]")
-	log.Printf("production mode: %t", core.Environment() == core.Production)
-
 	return nil
 }

@@ -27,6 +27,7 @@ const (
 	Production  = "production"
 	Staging     = "staging"
 	Development = "development"
+	Unknown     = "unknown"
 )
 
 // Environment is the environment for the application
