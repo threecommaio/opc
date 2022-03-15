@@ -8,7 +8,7 @@ import (
 )
 
 // JSON converts a struct to a pretty-printed JSON string.
-func JSON(message interface{}) string {
+func JSON(message any) string {
 	b, _ := json.MarshalIndent(message, "", "  ")
 	return string(b)
 }

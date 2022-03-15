@@ -13,15 +13,15 @@ const (
 )
 
 // Config interface
-type Config interface{}
+type Config any
 
 // Parse handles parsing the default location of the config file
-func Parse(dest interface{}, f fs.FS) (err error) {
+func Parse(dest any, f fs.FS) (err error) {
 	return ParseFile(dest, f, defaultPath)
 }
 
 // ParseFile handles parsing a config file and unmarshaling it into the dest
-func ParseFile(dest interface{}, f fs.FS, filename string) (err error) {
+func ParseFile(dest any, f fs.FS, filename string) (err error) {
 	// Open config file
 	file, err := f.Open(filename)
 	if err != nil {
