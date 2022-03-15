@@ -175,6 +175,7 @@ func (s *Srv) Start() error {
 	// Initializing the server in a goroutine so that
 	// it won't block the graceful shutdown handling below
 	go func() {
+		log.Infof("starting web server on %s", s.cfg.ListenAddress)
 		if err := s.server.ListenAndServe(); err != nil && errors.Is(err, http.ErrServerClosed) {
 			log.Printf("listen: %s\n", err)
 		}
