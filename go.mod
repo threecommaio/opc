@@ -3,6 +3,7 @@ module github.com/threecommaio/opc
 go 1.18
 
 require (
+	github.com/AlekSi/pointer v1.2.0
 	github.com/K-Phoen/grabana v0.20.11
 	github.com/Masterminds/goutils v1.1.1
 	github.com/Masterminds/sprig v2.22.0+incompatible
@@ -28,7 +29,7 @@ require (
 	github.com/joncrlsn/dque v0.0.0-20211108142734-c2ef48c5192a
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/kr/pretty v0.3.0
-	github.com/magefile/mage v1.12.1
+	github.com/magefile/mage v1.13.0
 	github.com/mailgun/mailgun-go v2.0.0+incompatible
 	github.com/mitchellh/copystructure v1.2.0
 	github.com/muyo/sno v1.2.1
@@ -51,7 +52,6 @@ require (
 
 require (
 	cloud.google.com/go/compute v1.5.0 // indirect
-	github.com/AlekSi/pointer v1.2.0 // indirect
 	github.com/K-Phoen/sdk v0.8.4 // indirect
 	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/PuerkitoBio/goquery v1.8.0 // indirect
