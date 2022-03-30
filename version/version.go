@@ -5,15 +5,42 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime/debug"
+	"strings"
+	"time"
 )
 
 // version vars
 var (
-	Project        = "UNKNOWN"
+	BuildRelease   = "project/v0.0.0"
+	Project        = "project"
 	Version        = "v0.0.0"
 	CommitHash     = "UNKNOWN"
-	BuildTimestamp = "UNKNOWN"
+	BuildTimestamp = time.Now()
+	DirtyBuild     = false
 )
+
+func init() {
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return
+	}
+	for _, kv := range info.Settings {
+		switch kv.Key {
+		case "vcs.revision":
+			CommitHash = kv.Value
+		case "vcs.time":
+			BuildTimestamp, _ = time.Parse(time.RFC3339, kv.Value)
+		case "vcs.modified":
+			DirtyBuild = kv.Value == "true"
+		}
+	}
+	r := strings.Split(BuildRelease, "/")
+	if len(r) == 2 {
+		Project = r[0]
+		Version = r[1]
+	}
+}
 
 // BuildVersion returns the full version of the build
 func BuildVersion() string {
@@ -33,7 +60,7 @@ func BuildFromCI() bool {
 
 // BuildTimestampFromCI returns the build timestamp from the CI environment
 func BuildTimestampFromCI() string {
-	return BuildTimestamp
+	return BuildTimestamp.String()
 }
 
 // BinaryPath returns the path to the binary depending on environment
