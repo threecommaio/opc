@@ -31,7 +31,7 @@ func (source) Uint64() uint64 {
 	return new(maphash.Hash).Sum64()
 }
 
-// Intn returns, as an int, a non-negative pseudo-random number in [0,n)
+// Intn returns a non-negative pseudo-random number in [0,n)
 func Intn(n int) int {
 	return rand.New(source{}).Intn(n)
 }
