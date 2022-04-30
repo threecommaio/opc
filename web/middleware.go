@@ -3,6 +3,7 @@ package web
 
 import (
 	"bytes"
+	"errors"
 	"io/ioutil"
 	"os"
 
@@ -12,14 +13,20 @@ import (
 	"github.com/threecommaio/opc/core"
 )
 
-var SlackSignature = Signature{Header: HeaderSlack, Env: "SLACK_WEBHOOK_SECRET", IsValid: SlackValidator}
-var SlackChallenge = Challenge{Header: HeaderSlack, Env: "SLACK_WEBHOOK_SECRET", IsValid: SlackChallengeValidator}
-var GithubSignature = Signature{Header: HeaderSlack, Env: "GH_WEBHOOK_SECRET", IsValid: GithubValidator}
-var LinearSignature = Signature{Header: HeaderSlack, Env: "LINEAR_WEBHOOK_SECRET", IsValid: LinearValidator}
+var (
+	SlackSignature  = Signature{Header: HeaderSlack, Env: "SLACK_WEBHOOK_SECRET", IsValid: SlackValidator}
+	SlackChallenge  = Challenge{Header: HeaderSlack, Env: "SLACK_WEBHOOK_SECRET", IsValid: SlackChallengeValidator}
+	GithubSignature = Signature{Header: HeaderSlack, Env: "GH_WEBHOOK_SECRET", IsValid: GithubValidator}
+	LinearSignature = Signature{Header: HeaderSlack, Env: "LINEAR_WEBHOOK_SECRET", IsValid: LinearValidator}
+	// allSignatures we should verify if they exist
+	allSignatures []Signature = []Signature{SlackSignature, GithubSignature, LinearSignature}
+	allChallenges []Challenge = []Challenge{SlackChallenge}
+)
 
-// allSignatures we should verify if they exist
-var allSignatures []Signature = []Signature{SlackSignature, GithubSignature, LinearSignature}
-var allChallenges []Challenge = []Challenge{SlackChallenge}
+// errors
+var (
+	ErrNoSignature = errors.New("no signature found")
+)
 
 // WebhookChallenge is a middleware for validating webhook challenge
 func WebhookChallenge(opts ...Challenge) gin.HandlerFunc {
@@ -66,7 +73,7 @@ func WebhookSecretValidation(opts ...Signature) gin.HandlerFunc {
 		if opts == nil {
 			opts = append(opts, allSignatures...)
 		}
-
+		valid := false
 		for _, signature := range opts {
 			_, ok := c.Request.Header[signature.Header]
 			if ok {
@@ -75,8 +82,13 @@ func WebhookSecretValidation(opts ...Signature) gin.HandlerFunc {
 				if IsError401(c, err) {
 					return
 				}
+				valid = true
 				break
 			}
+		}
+		// if no signature found, return error
+		if !valid && IsError401(c, ErrNoSignature) {
+			return
 		}
 		c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(data))
 		c.Next()
