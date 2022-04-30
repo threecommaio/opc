@@ -16,8 +16,8 @@ import (
 var (
 	SlackSignature  = Signature{Header: HeaderSlack, Env: "SLACK_WEBHOOK_SECRET", IsValid: SlackValidator}
 	SlackChallenge  = Challenge{Header: HeaderSlack, Env: "SLACK_WEBHOOK_SECRET", IsValid: SlackChallengeValidator}
-	GithubSignature = Signature{Header: HeaderSlack, Env: "GH_WEBHOOK_SECRET", IsValid: GithubValidator}
-	LinearSignature = Signature{Header: HeaderSlack, Env: "LINEAR_WEBHOOK_SECRET", IsValid: LinearValidator}
+	GithubSignature = Signature{Header: HeaderGithub, Env: "GH_WEBHOOK_SECRET", IsValid: GithubValidator}
+	LinearSignature = Signature{Header: HeaderLinear, Env: "LINEAR_WEBHOOK_SECRET", IsValid: LinearValidator}
 	// allSignatures we should verify if they exist
 	allSignatures []Signature = []Signature{SlackSignature, GithubSignature, LinearSignature}
 	allChallenges []Challenge = []Challenge{SlackChallenge}
