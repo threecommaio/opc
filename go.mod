@@ -107,6 +107,7 @@ require (
 	github.com/rogpeppe/go-internal v1.8.1 // indirect
 	github.com/saintfish/chardet v0.0.0-20120816061221-3af4cd4741ca // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
+	github.com/stretchr/testify v1.7.1 // indirect
 	github.com/tdewolff/parse/v2 v2.5.0 // indirect
 	github.com/temoto/robotstxt v1.1.2 // indirect
 	github.com/ugorji/go/codec v1.2.7 // indirect
